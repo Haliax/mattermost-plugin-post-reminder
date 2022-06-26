@@ -61,12 +61,13 @@ func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*mo
 		}
 		switch command {
 		case "add":
-			p.postCommandResponse(args, getHelp())
+			handler = p.runAddCommand
 		default:
 			p.postCommandResponse(args, getHelp())
 			return &model.CommandResponse{}, nil
 		}
 	}
+
 	isUserError, err := handler(restOfArgs, args)
 	if err != nil {
 		if isUserError {
@@ -78,6 +79,15 @@ func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*mo
 	}
 
 	return &model.CommandResponse{}, nil
+}
+
+func (p *Plugin) runAddCommand(args []string, extra *model.CommandArgs) (bool, error) {
+	if len(args) < 2 {
+		p.postCommandResponse(extra, "You must specify a user and a message.\n"+getHelp())
+		return false, nil
+	}
+
+	return false, nil
 }
 
 func getAutocompleteData() *model.AutocompleteData {

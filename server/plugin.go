@@ -1,11 +1,12 @@
 package main
 
 import (
+	"net/http"
+	"sync"
+
 	"github.com/mattermost/mattermost-server/v5/model"
 	"github.com/mattermost/mattermost-server/v5/plugin"
 	"github.com/pkg/errors"
-	"net/http"
-	"sync"
 )
 
 const (
@@ -16,15 +17,13 @@ const (
 	WSEventConfigUpdate = "config_update"
 )
 
-// ListManager represents the logic on the lists
-// type ListManager interface {
-// }
-
 // Plugin implements the interface expected by the Mattermost server to communicate between the server and plugin processes.
 type Plugin struct {
 	plugin.MattermostPlugin
 
 	BotUserID string
+
+	running bool
 
 	// configurationLock synchronizes access to the configuration.
 	configurationLock sync.RWMutex
@@ -32,8 +31,6 @@ type Plugin struct {
 	// configuration is the active plugin configuration. Consult getConfiguration and
 	// setConfiguration for usage.
 	configuration *configuration
-
-	// listManager ListManager
 }
 
 func (p *Plugin) OnActivate() error {
@@ -53,6 +50,8 @@ func (p *Plugin) OnActivate() error {
 		return errors.Wrap(err, "failed to ensure post reminder bot account")
 	}
 	p.BotUserID = botID
+
+	p.Run()
 
 	return p.API.RegisterCommand(getCommand())
 }
