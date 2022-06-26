@@ -1,21 +1,19 @@
 {
-    "id": "com.mattermost.plugin-starter-template",
-    "name": "Plugin Starter Template",
-    "description": "This plugin serves as a starting point for writing a Mattermost plugin.",
-    "homepage_url": "https://github.com/mattermost/mattermost-plugin-starter-template",
-    "support_url": "https://github.com/mattermost/mattermost-plugin-starter-template/issues",
-    "release_notes_url": "https://github.com/mattermost/mattermost-plugin-starter-template/releases/tag/v0.1.0",
-    "icon_path": "assets/starter-template-icon.svg",
+    "id": "com.mattermost.plugin-post-reminder",
+    "name": "Post Reminder",
+    "description": "This plugin allows the user to reminded about posts.",
+    "homepage_url": "https://github.com/haliax/mattermost-plugin-post-reminder",
+    "support_url": "https://github.com/haliax/mattermost-plugin-post-reminder/issues",
+    "release_notes_url": "https://github.com/haliax/mattermost-plugin-post-reminder/releases/tag/v0.1.0",
     "version": "0.1.0",
-    "min_server_version": "5.37.0",
+    "min_server_version": "6.5.0",
     "server": {
         "executables": {
             "linux-amd64": "server/dist/plugin-linux-amd64",
-            "linux-arm64": "server/dist/plugin-linux-arm64",
             "darwin-amd64": "server/dist/plugin-darwin-amd64",
-            "darwin-arm64": "server/dist/plugin-darwin-arm64",
             "windows-amd64": "server/dist/plugin-windows-amd64.exe"
-        }
+        },
+        "executable": ""
     },
     "webapp": {
         "bundle_path": "webapp/dist/main.js"
@@ -23,6 +21,15 @@
     "settings_schema": {
         "header": "",
         "footer": "",
-        "settings": []
+        "settings": [
+            {
+                "key": "hide_team_sidebar",
+                "display_name": "Hide team sidebar buttons:",
+                "type": "bool",
+                "help_text": "When true, the buttons in the team sidebar on the left toolbar will be hidden.",
+                "placeholder": "",
+                "default": null
+            }
+        ]
     }
 }
