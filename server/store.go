@@ -11,25 +11,19 @@ import (
 const (
 	// StoreRetries is the number of retries to use when storing lists fails on a race
 	StoreRetries = 3
-	// StoreListKey is the key used to store lists in the plugin KV store. Still "order" for backwards compatibility.
-	StoreListKey = "order"
-	// StoreIssueKey is the key used to store issues in the plugin KV store. Still "item" for backwards compatibility.
+	// StoreListKey is the key used to store lists in the plugin KV store.
+	StoreListKey = "reminders"
+	// StoreIssueKey is the key used to store issues in the plugin KV store.
 	StoreIssueKey = "item"
-	// StoreReminderKey is the key used to store the last time a user was reminded
-	// StoreReminderKey = "reminder"
-	// StoreReminderEnabledKey is the key used to store the user preference of auto daily reminder
-	// StoreReminderEnabledKey = "reminder_enabled"
-
-	// StoreAllowIncomingTaskRequestsKey is the key used to store user preference for wallowing any incoming requests
-	// StoreAllowIncomingTaskRequestsKey = "allow_incoming_task"
 )
 
 type ReminderRef struct {
-	ReminderID string `json:"issue_id"`
+	ReminderID   string `json:"issue_id"`
+	ReminderDate int64  `json:"reminder_date"`
 }
 
-func listKey(userID string, listID string) string {
-	return fmt.Sprintf("%s_%s%s", StoreListKey, userID, listID)
+func listKey() string {
+	return StoreListKey
 }
 
 func issueKey(issueID string) string {
@@ -40,7 +34,7 @@ type listStore struct {
 	api plugin.API
 }
 
-func (l listStore) AddIssue(issue *Reminder) error {
+func (l *listStore) AddReminder(issue *Reminder) error {
 	jsonIssue, jsonErr := json.Marshal(issue)
 	if jsonErr != nil {
 		return jsonErr
@@ -54,7 +48,26 @@ func (l listStore) AddIssue(issue *Reminder) error {
 	return nil
 }
 
-func (l *listStore) RemoveIssue(issueID string) error {
+func (l *listStore) GetReminder(issueID string) (*Reminder, error) {
+	originalJSONIssue, appErr := l.api.KVGet(issueKey(issueID))
+	if appErr != nil {
+		return nil, errors.New(appErr.Error())
+	}
+
+	if originalJSONIssue == nil {
+		return nil, errors.New("cannot find issue")
+	}
+
+	var issue *Reminder
+	err := json.Unmarshal(originalJSONIssue, &issue)
+	if err != nil {
+		return nil, err
+	}
+
+	return issue, nil
+}
+
+func (l *listStore) RemoveReminder(issueID string) error {
 	appErr := l.api.KVDelete(issueKey(issueID))
 	if appErr != nil {
 		return errors.New(appErr.Error())
@@ -63,9 +76,23 @@ func (l *listStore) RemoveIssue(issueID string) error {
 	return nil
 }
 
-func (l listStore) AddReference(userID, issueID, listID string) error {
+func (l *listStore) GetAndRemoveReminder(issueID string) (*Reminder, error) {
+	issue, err := l.GetReminder(issueID)
+	if err != nil {
+		return nil, err
+	}
+
+	err = l.RemoveReminder(issueID)
+	if err != nil {
+		return nil, err
+	}
+
+	return issue, nil
+}
+
+func (l listStore) AddReference(remindDate int64, issueID string) error {
 	for i := 0; i < StoreRetries; i++ {
-		list, originalJSONList, err := l.getList(userID, listID)
+		list, originalJSONList, err := l.getList()
 		if err != nil {
 			return err
 		}
@@ -77,10 +104,11 @@ func (l listStore) AddReference(userID, issueID, listID string) error {
 		}
 
 		list = append(list, &ReminderRef{
-			ReminderID: issueID,
+			ReminderID:   issueID,
+			ReminderDate: remindDate,
 		})
 
-		ok, err := l.saveList(userID, listID, list, originalJSONList)
+		ok, err := l.saveList(list, originalJSONList)
 		if err != nil {
 			return err
 		}
@@ -95,6 +123,40 @@ func (l listStore) AddReference(userID, issueID, listID string) error {
 	return errors.New("unable to store installation")
 }
 
+func (l *listStore) RemoveReference(issueID string) error {
+	for i := 0; i < StoreRetries; i++ {
+		list, originalJSONList, err := l.getList()
+		if err != nil {
+			return err
+		}
+
+		found := false
+		for i, ir := range list {
+			if ir.ReminderID == issueID {
+				list = append(list[:i], list[i+1:]...)
+				found = true
+			}
+		}
+
+		if !found {
+			return errors.New("cannot find issue")
+		}
+
+		ok, err := l.saveList(list, originalJSONList)
+		if err != nil {
+			return err
+		}
+
+		// If err is nil but ok is false, then something else updated between the get and set above
+		// so we need to try again, otherwise we can return
+		if ok {
+			return nil
+		}
+	}
+
+	return errors.New("unable to store list")
+}
+
 // NewListStore creates a new listStore
 func NewListStore(api plugin.API) ListStore {
 	return &listStore{
@@ -102,13 +164,13 @@ func NewListStore(api plugin.API) ListStore {
 	}
 }
 
-func (l *listStore) GetList(userID, listID string) ([]*ReminderRef, error) {
-	irs, _, err := l.getList(userID, listID)
+func (l *listStore) GetList() ([]*ReminderRef, error) {
+	irs, _, err := l.getList()
 	return irs, err
 }
 
-func (l *listStore) getList(userID, listID string) ([]*ReminderRef, []byte, error) {
-	originalJSONList, err := l.api.KVGet(listKey(userID, listID))
+func (l *listStore) getList() ([]*ReminderRef, []byte, error) {
+	originalJSONList, err := l.api.KVGet(listKey())
 	if err != nil {
 		return nil, nil, err
 	}
@@ -120,19 +182,19 @@ func (l *listStore) getList(userID, listID string) ([]*ReminderRef, []byte, erro
 	var list []*ReminderRef
 	jsonErr := json.Unmarshal(originalJSONList, &list)
 	if jsonErr != nil {
-		return l.legacyIssueRef(userID, listID)
+		return l.legacyIssueRef()
 	}
 
 	return list, originalJSONList, nil
 }
 
-func (l *listStore) saveList(userID, listID string, list []*ReminderRef, originalJSONList []byte) (bool, error) {
+func (l *listStore) saveList(list []*ReminderRef, originalJSONList []byte) (bool, error) {
 	newJSONList, jsonErr := json.Marshal(list)
 	if jsonErr != nil {
 		return false, jsonErr
 	}
 
-	ok, appErr := l.api.KVCompareAndSet(listKey(userID, listID), originalJSONList, newJSONList)
+	ok, appErr := l.api.KVCompareAndSet(listKey(), originalJSONList, newJSONList)
 	if appErr != nil {
 		return false, errors.New(appErr.Error())
 	}
@@ -140,8 +202,8 @@ func (l *listStore) saveList(userID, listID string, list []*ReminderRef, origina
 	return ok, nil
 }
 
-func (l *listStore) legacyIssueRef(userID, listID string) ([]*ReminderRef, []byte, error) {
-	originalJSONList, err := l.api.KVGet(listKey(userID, listID))
+func (l *listStore) legacyIssueRef() ([]*ReminderRef, []byte, error) {
+	originalJSONList, err := l.api.KVGet(listKey())
 	if err != nil {
 		return nil, nil, err
 	}

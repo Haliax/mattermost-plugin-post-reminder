@@ -12,19 +12,16 @@ import (
 )
 
 const (
-	// WSEventRefresh is the WebSocket event for refreshing the List
-	WSEventRefresh = "refresh"
-
 	// WSEventConfigUpdate is the WebSocket event to update the configurations on webapp
 	WSEventConfigUpdate = "config_update"
 )
 
 // ListManager represents the logic on the lists
 type ListManager interface {
-	// AddIssue adds a todo to userID's myList with the message
 	AddIssue(userID, message, postID, rememberType string, when int64) (*Reminder, error)
-	// GetUserName returns the readable username from userID
+	GetActiveIssues() ([]*Reminder, error)
 	GetUserName(userID string) string
+	RemoveIssue(issueID string) (*Reminder, error)
 }
 
 // Plugin implements the interface expected by the Mattermost server to communicate between the server and plugin processes.
@@ -111,8 +108,6 @@ func (p *Plugin) handleAdd(w http.ResponseWriter, r *http.Request) {
 	if convErr != nil {
 		p.API.LogError("Unable to add issue err=" + convErr.Error())
 		p.handleErrorWithCode(w, http.StatusInternalServerError, "Unable to add issue", convErr)
-
-		p.sendRefreshEvent(userID, []string{MyListKey})
 		return
 	}
 
@@ -122,16 +117,6 @@ func (p *Plugin) handleAdd(w http.ResponseWriter, r *http.Request) {
 		p.handleErrorWithCode(w, http.StatusInternalServerError, "Unable to add issue", err)
 		return
 	}
-
-	p.sendRefreshEvent(userID, []string{MyListKey})
-}
-
-func (p *Plugin) sendRefreshEvent(userID string, lists []string) {
-	p.API.PublishWebSocketEvent(
-		WSEventRefresh,
-		map[string]interface{}{"lists": lists},
-		&model.WebsocketBroadcast{UserId: userID},
-	)
 }
 
 // Publish a WebSocket event to update the client config of the plugin on the webapp end.

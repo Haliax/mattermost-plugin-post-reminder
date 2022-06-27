@@ -1,25 +1,22 @@
 package main
 
 import (
-	"github.com/mattermost/mattermost-server/v5/plugin"
-)
+	"fmt"
 
-const (
-	// MyListKey is the key used to store the list of the owned todos
-	MyListKey = ""
+	"github.com/mattermost/mattermost-server/v5/model"
+	"github.com/mattermost/mattermost-server/v5/plugin"
 )
 
 // ListStore represents the KVStore operations for lists
 type ListStore interface {
-	// Issue related function
-	AddIssue(issue *Reminder) error
-	RemoveIssue(issueID string) error
+	AddReminder(issue *Reminder) error
+	GetReminder(issueID string) (*Reminder, error)
+	RemoveReminder(issueID string) error
+	GetAndRemoveReminder(issueID string) (*Reminder, error)
+	GetList() ([]*ReminderRef, error)
 
-	// Issue References related functions
-
-	// AddReference creates a new IssueRef with the issueID, foreignUSerID and foreignIssueID, and stores it
-	// on the listID for userID.
-	AddReference(userID, issueID, listID string) error
+	AddReference(remindDate int64, issueID string) error
+	RemoveReference(issueID string) error
 }
 
 type listManager struct {
@@ -36,20 +33,63 @@ func NewListManager(api plugin.API) ListManager {
 }
 
 func (l *listManager) AddIssue(userID, message, postID, rememberType string, when int64) (*Reminder, error) {
-	issue := newReminder(message, postID, rememberType, when)
+	issue := newReminder(userID, message, postID, rememberType, when)
 
-	if err := l.store.AddIssue(issue); err != nil {
+	if err := l.store.AddReminder(issue); err != nil {
 		return nil, err
 	}
 
-	if err := l.store.AddReference(userID, issue.ID, MyListKey); err != nil {
-		if rollbackError := l.store.RemoveIssue(issue.ID); rollbackError != nil {
+	if err := l.store.AddReference(issue.When, issue.ID); err != nil {
+		if rollbackError := l.store.RemoveReminder(issue.ID); rollbackError != nil {
 			l.api.LogError("cannot rollback issue after add error, Err=", err.Error())
 		}
 		return nil, err
 	}
 
 	return issue, nil
+}
+
+func (l *listManager) RemoveIssue(issueID string) (outIssue *Reminder, outErr error) {
+	ir, _ := l.store.GetReminder(issueID)
+	if ir == nil {
+		return nil, fmt.Errorf("cannot find element")
+	}
+
+	if err := l.store.RemoveReference(issueID); err != nil {
+		return nil, err
+	}
+
+	issue, err := l.store.GetAndRemoveReminder(issueID)
+	if err != nil {
+		l.api.LogError("cannot remove issue, Err=", err.Error())
+	}
+
+	return issue, nil
+}
+
+func (l *listManager) GetActiveIssues() ([]*Reminder, error) {
+	refs, err := l.store.GetList()
+	if err != nil {
+		return nil, err
+	}
+
+	now := model.GetMillis()
+
+	reminders := []*Reminder{}
+	for _, ref := range refs {
+		if ref.ReminderDate > now {
+			continue
+		}
+
+		reminder, err := l.store.GetReminder(ref.ReminderID)
+		if err != nil {
+			continue
+		}
+
+		reminders = append(reminders, reminder)
+	}
+
+	return reminders, nil
 }
 
 func (l *listManager) GetUserName(userID string) string {

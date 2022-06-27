@@ -25,7 +25,7 @@ export default class Root extends React.Component {
             message: null,
             sendTo: null,
             attachToThread: false,
-            reminderType: 'unread',
+            reminderType: 'dm',
             reminderDate: '3600',
             durationNumber: 1,
             durationType: 'hours',
@@ -92,66 +92,68 @@ export default class Root extends React.Component {
                 >
                     <h1>{'Add a Reminder'}</h1>
                     <div className='postreminderplugin-issue'>
-                        <h3>
-                            {'Reminder Type'}
-                        </h3>
-                        <div className='btn-group'>
-                            <button
-                                className={unreadButtonClass}
-                                onClick={() => {
-                                    this.handleTypeChange('unread');
-                                }}
-                            >
-                                {'Mark the message as unread!'}
-                            </button>
-                            <button
-                                className={dMButtonClass}
-                                onClick={() => {
-                                    this.handleTypeChange('dm');
-                                }}
-                            >
-                                {'Send me a DM!'}
-                            </button>
-                        </div>
-                        <div className={messageWrapper}>
+                        <div className='hidden'>
                             <h3>
-                                {'Reminder Message'}
+                                {'Reminder Type'}
                             </h3>
                             <div className='btn-group'>
                                 <button
-                                    className={writeButtonClass}
+                                    className={unreadButtonClass}
                                     onClick={() => {
-                                        this.setState({previewMarkdown: false});
+                                        this.handleTypeChange('unread');
                                     }}
                                 >
-                                    {'Write'}
+                                    {'Mark the message as unread!'}
                                 </button>
                                 <button
-                                    className={previewButtonClass}
+                                    className={dMButtonClass}
                                     onClick={() => {
-                                        this.setState({previewMarkdown: true});
+                                        this.handleTypeChange('dm');
                                     }}
                                 >
-                                    {'Preview'}
+                                    {'Send me a DM!'}
                                 </button>
                             </div>
-                            {this.state.previewMarkdown ? (
-                                <div
-                                    className='postreminderplugin-input'
-                                    style={style.markdown}
-                                >
-                                    {PostUtils.messageHtmlToComponent(
-                                        PostUtils.formatText(this.state.message),
-                                    )}
+                            <div className={messageWrapper}>
+                                <h3>
+                                    {'Reminder Message'}
+                                </h3>
+                                <div className='btn-group'>
+                                    <button
+                                        className={writeButtonClass}
+                                        onClick={() => {
+                                            this.setState({previewMarkdown: false});
+                                        }}
+                                    >
+                                        {'Write'}
+                                    </button>
+                                    <button
+                                        className={previewButtonClass}
+                                        onClick={() => {
+                                            this.setState({previewMarkdown: true});
+                                        }}
+                                    >
+                                        {'Preview'}
+                                    </button>
                                 </div>
-                            ) : (
-                                <textarea
-                                    className='postreminderplugin-input'
-                                    style={style.textarea}
-                                    value={message}
-                                    onChange={(e) => this.setState({message: e.target.value})}
-                                />)
-                            }
+                                {this.state.previewMarkdown ? (
+                                    <div
+                                        className='postreminderplugin-input'
+                                        style={style.markdown}
+                                    >
+                                        {PostUtils.messageHtmlToComponent(
+                                            PostUtils.formatText(this.state.message),
+                                        )}
+                                    </div>
+                                ) : (
+                                    <textarea
+                                        className='postreminderplugin-input'
+                                        style={style.textarea}
+                                        value={message}
+                                        onChange={(e) => this.setState({message: e.target.value})}
+                                    />)
+                                }
+                            </div>
                         </div>
                         <h3>
                             {'When do you want to be reminded?'}
@@ -162,10 +164,10 @@ export default class Root extends React.Component {
                                 value={this.state.durationNumber}
                                 onChange={(e) => {
                                     this.setState({durationNumber: ((e.target.value ? parseInt(e.target.value, 10) : 0))});
-                                    this.setState({reminderDate: ((e.target.value ? parseInt(e.target.value, 10) : 0) * 3600 * 1000)});
+                                    this.setState({reminderDate: ((e.target.value ? parseInt(e.target.value, 10) : 0) * 60 * 1000)});
                                 }}
                             />
-                            <b>{' Hours'}</b>
+                            <b>{' Minutes'}</b>
                         </div>
                     </div>
                     <div className='postreminderplugin-button-container'>

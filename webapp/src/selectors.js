@@ -17,12 +17,6 @@ export const getMessage = (state) => {
     }
     return post.message;
 };
-export const getCurrentTeamRoute = (state) => {
-    const basePath = getSiteURL(state);
-    const teamName = state.entities.teams.teams[state.entities.teams.currentTeamId].name;
-
-    return basePath + '/' + teamName + '/';
-};
 
 // TODO: Move this into mattermost-redux or mattermost-webapp.
 export const getSiteURL = (state) => {
