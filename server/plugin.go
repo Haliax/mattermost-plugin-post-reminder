@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/json"
 	"net/http"
+	"strconv"
 	"sync"
 
 	"github.com/mattermost/mattermost-server/v5/model"
@@ -10,12 +12,20 @@ import (
 )
 
 const (
-	// WSEventRefresh is the WebSocket event for refreshing the Todo list
-	// WSEventRefresh = "refresh"
+	// WSEventRefresh is the WebSocket event for refreshing the List
+	WSEventRefresh = "refresh"
 
-	// WSEventConfigUpdate is the WebSocket event to update the Todo list's configurations on webapp
+	// WSEventConfigUpdate is the WebSocket event to update the configurations on webapp
 	WSEventConfigUpdate = "config_update"
 )
+
+// ListManager represents the logic on the lists
+type ListManager interface {
+	// AddIssue adds a todo to userID's myList with the message
+	AddIssue(userID, message, postID string, when int64) (*Reminder, error)
+	// GetUserName returns the readable username from userID
+	GetUserName(userID string) string
+}
 
 // Plugin implements the interface expected by the Mattermost server to communicate between the server and plugin processes.
 type Plugin struct {
@@ -31,6 +41,8 @@ type Plugin struct {
 	// configuration is the active plugin configuration. Consult getConfiguration and
 	// setConfiguration for usage.
 	configuration *configuration
+
+	listManager ListManager
 }
 
 func (p *Plugin) OnActivate() error {
@@ -53,6 +65,8 @@ func (p *Plugin) OnActivate() error {
 
 	p.Run()
 
+	p.listManager = NewListManager(p.API)
+
 	return p.API.RegisterCommand(getCommand())
 }
 
@@ -62,7 +76,61 @@ func (p *Plugin) OnDeactivate() error {
 
 // ServeHTTP demonstrates a plugin that handles HTTP requests by greeting the world.
 func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Request) {
-	http.NotFound(w, r)
+	switch r.URL.Path {
+	case "/add":
+		p.handleAdd(w, r)
+	default:
+		http.NotFound(w, r)
+	}
+}
+
+type addAPIRequest struct {
+	Message    string `json:"message"`
+	RememberAt string `json:"remember_at"`
+	PostID     string `json:"post_id"`
+}
+
+func (p *Plugin) handleAdd(w http.ResponseWriter, r *http.Request) {
+	userID := r.Header.Get("Mattermost-User-ID")
+	if userID == "" {
+		http.Error(w, "Not authorized", http.StatusUnauthorized)
+		return
+	}
+
+	var addRequest *addAPIRequest
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(&addRequest)
+	if err != nil {
+		p.API.LogError("Unable to decode JSON err=" + err.Error())
+		p.handleErrorWithCode(w, http.StatusBadRequest, "Unable to decode JSON", err)
+		return
+	}
+
+	var time, convErr = strconv.ParseInt(addRequest.RememberAt, 10, 64)
+	if convErr != nil {
+		p.API.LogError("Unable to add issue err=" + convErr.Error())
+		p.handleErrorWithCode(w, http.StatusInternalServerError, "Unable to add issue", convErr)
+
+		p.sendRefreshEvent(userID, []string{MyListKey})
+		return
+	}
+
+	_, err = p.listManager.AddIssue(userID, addRequest.Message, addRequest.PostID, time)
+	if err != nil {
+		p.API.LogError("Unable to add issue err=" + err.Error())
+		p.handleErrorWithCode(w, http.StatusInternalServerError, "Unable to add issue", err)
+		return
+	}
+
+	p.sendRefreshEvent(userID, []string{MyListKey})
+}
+
+func (p *Plugin) sendRefreshEvent(userID string, lists []string) {
+	p.API.PublishWebSocketEvent(
+		WSEventRefresh,
+		map[string]interface{}{"lists": lists},
+		&model.WebsocketBroadcast{UserId: userID},
+	)
 }
 
 // Publish a WebSocket event to update the client config of the plugin on the webapp end.
@@ -76,4 +144,16 @@ func (p *Plugin) sendConfigUpdateEvent() {
 		clientConfigMap,
 		&model.WebsocketBroadcast{},
 	)
+}
+
+func (p *Plugin) handleErrorWithCode(w http.ResponseWriter, code int, errTitle string, err error) {
+	w.WriteHeader(code)
+	b, _ := json.Marshal(struct {
+		Error   string `json:"error"`
+		Details string `json:"details"`
+	}{
+		Error:   errTitle,
+		Details: err.Error(),
+	})
+	_, _ = w.Write(b)
 }

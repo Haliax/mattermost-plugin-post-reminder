@@ -82,11 +82,7 @@ func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*mo
 }
 
 func (p *Plugin) runAddCommand(args []string, extra *model.CommandArgs) (bool, error) {
-	if len(args) < 2 {
-		p.postCommandResponse(extra, "You must specify a user and a message.\n"+getHelp())
-		return false, nil
-	}
-
+	p.postCommandResponse(extra, "Hallo!")
 	return false, nil
 }
 
