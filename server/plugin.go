@@ -67,7 +67,7 @@ func (p *Plugin) OnActivate() error {
 
 	p.listManager = NewListManager(p.API)
 
-	return p.API.RegisterCommand(getCommand())
+	return nil
 }
 
 func (p *Plugin) OnDeactivate() error {
