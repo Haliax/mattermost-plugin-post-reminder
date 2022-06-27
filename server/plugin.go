@@ -22,7 +22,7 @@ const (
 // ListManager represents the logic on the lists
 type ListManager interface {
 	// AddIssue adds a todo to userID's myList with the message
-	AddIssue(userID, message, postID string, when int64) (*Reminder, error)
+	AddIssue(userID, message, postID, rememberType string, when int64) (*Reminder, error)
 	// GetUserName returns the readable username from userID
 	GetUserName(userID string) string
 }
@@ -85,9 +85,10 @@ func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Req
 }
 
 type addAPIRequest struct {
-	Message    string `json:"message"`
-	RememberAt string `json:"remember_at"`
-	PostID     string `json:"post_id"`
+	Message      string `json:"message"`
+	RememberAt   string `json:"remember_at"`
+	PostID       string `json:"post_id"`
+	RememberType string `json:"reminder_type"`
 }
 
 func (p *Plugin) handleAdd(w http.ResponseWriter, r *http.Request) {
@@ -115,7 +116,7 @@ func (p *Plugin) handleAdd(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = p.listManager.AddIssue(userID, addRequest.Message, addRequest.PostID, time)
+	_, err = p.listManager.AddIssue(userID, addRequest.Message, addRequest.PostID, addRequest.RememberType, time)
 	if err != nil {
 		p.API.LogError("Unable to add issue err=" + err.Error())
 		p.handleErrorWithCode(w, http.StatusInternalServerError, "Unable to add issue", err)

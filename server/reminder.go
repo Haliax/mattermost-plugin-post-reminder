@@ -10,14 +10,16 @@ type Reminder struct {
 	CreateAt int64  `json:"create_at"`
 	PostID   string `json:"post_id"`
 	When     int64  `json:"reminder_at"`
+	Type     string `json:"remember_type"`
 }
 
-func newReminder(message string, postID string, when int64) *Reminder {
+func newReminder(message, postID, rememberType string, when int64) *Reminder {
 	return &Reminder{
 		ID:       model.NewId(),
 		CreateAt: model.GetMillis(),
 		Message:  message,
 		PostID:   postID,
+		Type:     rememberType,
 		When:     model.GetMillis() + when,
 	}
 }
