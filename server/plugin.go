@@ -11,11 +11,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-const (
-	// WSEventConfigUpdate is the WebSocket event to update the configurations on webapp
-	WSEventConfigUpdate = "config_update"
-)
-
 // ListManager represents the logic on the lists
 type ListManager interface {
 	AddIssue(userID, message, postID string, when int64) (*Reminder, error)
@@ -116,19 +111,6 @@ func (p *Plugin) handleAdd(w http.ResponseWriter, r *http.Request) {
 		p.handleErrorWithCode(w, http.StatusInternalServerError, "Unable to add issue", err)
 		return
 	}
-}
-
-// Publish a WebSocket event to update the client config of the plugin on the webapp end.
-func (p *Plugin) sendConfigUpdateEvent() {
-	clientConfigMap := map[string]interface{}{
-		"hide_team_sidebar": p.configuration.HideTeamSidebar,
-	}
-
-	p.API.PublishWebSocketEvent(
-		WSEventConfigUpdate,
-		clientConfigMap,
-		&model.WebsocketBroadcast{},
-	)
 }
 
 func (p *Plugin) handleErrorWithCode(w http.ResponseWriter, code int, errTitle string, err error) {
