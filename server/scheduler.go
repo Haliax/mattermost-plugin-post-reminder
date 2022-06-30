@@ -18,7 +18,7 @@ func (p *Plugin) Stop() {
 
 func (p *Plugin) runner() {
 	go func() {
-		<-time.NewTimer(time.Second).C
+		<-time.NewTimer(time.Second * 5).C
 		if !p.running {
 			return
 		}
