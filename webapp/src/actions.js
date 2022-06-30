@@ -20,9 +20,9 @@ export const closeRootModal = () => (dispatch) => {
     });
 };
 
-export const add = (message, sendTo, postID, reminderType, reminderDate) => async (dispatch, getState) => {
+export const add = (message, postID, reminderDate) => async (dispatch, getState) => {
     await fetch(getPluginServerRoute(getState()) + '/add', Client4.getOptions({
         method: 'post',
-        body: JSON.stringify({message, send_to: sendTo, post_id: postID, remember_at: reminderDate.toString(), reminder_type: reminderType}),
+        body: JSON.stringify({message, post_id: postID, remember_at: reminderDate.toString()}),
     }));
 };

@@ -32,8 +32,8 @@ func NewListManager(api plugin.API) ListManager {
 	}
 }
 
-func (l *listManager) AddIssue(userID, message, postID, rememberType string, when int64) (*Reminder, error) {
-	issue := newReminder(userID, message, postID, rememberType, when)
+func (l *listManager) AddIssue(userID, message, postID string, when int64) (*Reminder, error) {
+	issue := newReminder(userID, message, postID, when)
 
 	if err := l.store.AddReminder(issue); err != nil {
 		return nil, err

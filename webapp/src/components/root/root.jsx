@@ -23,9 +23,7 @@ export default class Root extends React.Component {
 
         this.state = {
             message: null,
-            sendTo: null,
             attachToThread: false,
-            reminderType: 'dm',
             reminderDate: '3600',
             durationNumber: 1,
             durationType: 'hours',
@@ -37,29 +35,23 @@ export default class Root extends React.Component {
         if (props.visible && state.message == null) {
             return {message: props.message};
         }
-        if (!props.visible && (state.message != null || state.sendTo != null)) {
-            return {message: null, sendTo: null, attachToThread: false, previewMarkdown: false};
+        if (!props.visible && (state.message != null)) {
+            return {message: null, attachToThread: false, previewMarkdown: false};
         }
         return null;
     }
 
-    handleAttachChange = (e) => {
-        const value = e.target.checked;
-        if (value !== this.state.attachToThread) {
-            this.setState({
-                attachToThread: value,
-            });
-        }
+    setStateAsync(state) {
+        return new Promise((resolve) => {
+            this.setState(state, resolve);
+        });
     }
 
-    handleTypeChange = (type) => {
-        this.setState({reminderType: type});
-    }
-
-    submit = () => {
+    submit = async () => {
+        // ToDo: New function here.
         const {submit, close, postID} = this.props;
-        const {message, sendTo, reminderType, reminderDate} = this.state;
-        submit(message, sendTo, postID, reminderType, reminderDate);
+        const {message, reminderDate} = this.state;
+        submit(message, postID, reminderDate);
         close();
     }
 
@@ -77,8 +69,6 @@ export default class Root extends React.Component {
         const inactiveClass = 'btn';
         const writeButtonClass = this.state.previewMarkdown ? inactiveClass : activeClass;
         const previewButtonClass = this.state.previewMarkdown ? activeClass : inactiveClass;
-        const unreadButtonClass = this.state.reminderType === 'unread' ? activeClass : inactiveClass;
-        const dMButtonClass = this.state.reminderType === 'dm' ? activeClass : inactiveClass;
         const messageWrapper = this.state.reminderType === 'dm' ? '' : 'hidden';
 
         return (
@@ -92,28 +82,31 @@ export default class Root extends React.Component {
                 >
                     <h1>{'Add a Reminder'}</h1>
                     <div className='postreminderplugin-issue'>
+                        <h3>
+                            {'When do you want to be reminded?'}
+                        </h3>
+                        <div className='postreminderplugin-duration-container'>
+                            <input
+                                type={'number'}
+                                value={this.state.durationNumber}
+                                onChange={async (e) => {
+                                    await this.setStateAsync({durationNumber: ((e.target.value ? parseInt(e.target.value, 10) : 0))});
+                                    await this.setStateAsync({reminderDate: ((e.target.value ? parseInt(e.target.value, 10) : 0) * 60 * 1000)});
+                                }}
+                            />
+                            <select
+                                value={this.state.durationNumber}
+                                onChange={async (e) => {
+                                    await this.setStateAsync({durationType: e.target.value});
+                                }}
+                            >
+                                <option value={'minutes'}>{'Minutes'}</option>
+                                <option value={'hours'}>{'Hours'}</option>
+                                <option value={'days'}>{'Days'}</option>
+                            </select>
+                        </div>
+
                         <div className='hidden'>
-                            <h3>
-                                {'Reminder Type'}
-                            </h3>
-                            <div className='btn-group'>
-                                <button
-                                    className={unreadButtonClass}
-                                    onClick={() => {
-                                        this.handleTypeChange('unread');
-                                    }}
-                                >
-                                    {'Mark the message as unread!'}
-                                </button>
-                                <button
-                                    className={dMButtonClass}
-                                    onClick={() => {
-                                        this.handleTypeChange('dm');
-                                    }}
-                                >
-                                    {'Send me a DM!'}
-                                </button>
-                            </div>
                             <div className={messageWrapper}>
                                 <h3>
                                     {'Reminder Message'}
@@ -154,20 +147,6 @@ export default class Root extends React.Component {
                                     />)
                                 }
                             </div>
-                        </div>
-                        <h3>
-                            {'When do you want to be reminded?'}
-                        </h3>
-                        <div className='postreminderplugin-duration-container'>
-                            <input
-                                type={'number'}
-                                value={this.state.durationNumber}
-                                onChange={(e) => {
-                                    this.setState({durationNumber: ((e.target.value ? parseInt(e.target.value, 10) : 0))});
-                                    this.setState({reminderDate: ((e.target.value ? parseInt(e.target.value, 10) : 0) * 60 * 1000)});
-                                }}
-                            />
-                            <b>{' Minutes'}</b>
                         </div>
                     </div>
                     <div className='postreminderplugin-button-container'>

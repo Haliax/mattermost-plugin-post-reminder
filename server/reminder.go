@@ -12,17 +12,15 @@ type Reminder struct {
 	CreateAt int64  `json:"create_at"`
 	PostID   string `json:"post_id"`
 	When     int64  `json:"reminder_at"`
-	Type     string `json:"remember_type"`
 }
 
-func newReminder(userID, message, postID, rememberType string, when int64) *Reminder {
+func newReminder(userID, message, postID string, when int64) *Reminder {
 	return &Reminder{
 		ID:       model.NewId(),
 		CreateBy: userID,
 		CreateAt: model.GetMillis(),
 		Message:  message,
 		PostID:   postID,
-		Type:     rememberType,
 		When:     model.GetMillis() + when,
 	}
 }
@@ -52,8 +50,9 @@ func (p *Plugin) TriggerReminders() {
 		if channel.IsGroupOrDirect() {
 			p.PostBotDM(reminder.CreateBy, fmt.Sprintf("You requested to be reminded about [this post](/%s/pl/%s)!", team.Name, post.Id))
 		} else {
-			p.PostBotDM(reminder.CreateBy, fmt.Sprintf("You requested to be reminded about [this post](/%s/pl/%s) in ~%s!", team.Name, post.Id, channel.Name))
+			p.PostBotDM(reminder.CreateBy, fmt.Sprintf("You requested to be reminded about this post: %s/%s/pl/%s) in ~%s!", *p.API.GetConfig().ServiceSettings.SiteURL, team.Name, post.Id, channel.Name))
 		}
+
 		_, _ = p.listManager.RemoveIssue(reminder.ID)
 	}
 }
