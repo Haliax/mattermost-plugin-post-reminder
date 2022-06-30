@@ -125,7 +125,7 @@ export default class Root extends React.Component {
                         </div>
 
                         <h3>
-                            {'Reminder Message'}
+                            {'Optional Message'}
                         </h3>
                         <div className='btn-group'>
                             <button
@@ -166,11 +166,10 @@ export default class Root extends React.Component {
                     <div className='postreminderplugin-button-container'>
                         <button
                             className={'btn btn-primary'}
-                            style={message ? style.button : style.inactiveButton}
+                            style={style.button}
                             onClick={this.submit}
-                            disabled={!message}
                         >
-                            {'Add Reminder'}
+                            {'Add the reminder!'}
                         </button>
                     </div>
                     <div className='postreminderplugin-divider'/>
@@ -212,7 +211,6 @@ const getStyle = makeStyleFromTheme((theme) => {
             fontSize: '16px',
             display: 'flex',
             flexDirection: 'column',
-            alignItems: 'end',
         },
     };
 });

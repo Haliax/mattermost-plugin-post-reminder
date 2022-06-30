@@ -47,10 +47,18 @@ func (p *Plugin) TriggerReminders() {
 			continue
 		}
 
+		postLink := fmt.Sprintf("%s/%s/pl/%s", *p.API.GetConfig().ServiceSettings.SiteURL, team.Name, post.Id)
+		reminderMessage := ""
+
+		if reminder.Message != "" {
+			reminderMessage = fmt.Sprintf("\n\nYour reminder message is:\n%s", reminder.Message)
+		}
+
 		if channel.IsGroupOrDirect() {
-			p.PostBotDM(reminder.CreateBy, fmt.Sprintf("You requested to be reminded about [this post](/%s/pl/%s)!", team.Name, post.Id))
+			p.PostBotDM(reminder.CreateBy, fmt.Sprintf("You requested to be reminded about [this post](%s): %s%s", postLink, postLink, reminderMessage))
 		} else {
-			p.PostBotDM(reminder.CreateBy, fmt.Sprintf("You requested to be reminded about this post: %s/%s/pl/%s) in ~%s!", *p.API.GetConfig().ServiceSettings.SiteURL, team.Name, post.Id, channel.Name))
+
+			p.PostBotDM(reminder.CreateBy, fmt.Sprintf("You requested to be reminded about this [this post](%s) in ~%s: %s%s", postLink, channel.Name, postLink, reminderMessage))
 		}
 
 		_, _ = p.listManager.RemoveIssue(reminder.ID)
