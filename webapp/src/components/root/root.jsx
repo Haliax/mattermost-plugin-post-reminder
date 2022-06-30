@@ -108,7 +108,8 @@ export default class Root extends React.Component {
                             <input
                                 type={'number'}
                                 value={this.state.durationNumber}
-                                className={'postreminderplugin-input postreminderplugin-split-line'}
+                                style={style.numberinput}
+                                className={'postreminderplugin-input postreminderplugin-split-line postreminderplugin-no-spin-button'}
                                 onChange={async (e) => {
                                     await this.setStateAsync({durationNumber: ((e.target.value ? parseInt(e.target.value, 10) : 0))});
                                 }}
@@ -133,6 +134,7 @@ export default class Root extends React.Component {
                         <div className='btn-group'>
                             <button
                                 className={writeButtonClass}
+                                style={this.state.previewMarkdown ? style.inactiveButton : style.button}
                                 onClick={() => {
                                     this.setState({previewMarkdown: false});
                                 }}
@@ -141,6 +143,7 @@ export default class Root extends React.Component {
                             </button>
                             <button
                                 className={previewButtonClass}
+                                style={this.state.previewMarkdown ? style.button : style.inactiveButton}
                                 onClick={() => {
                                     this.setState({previewMarkdown: true});
                                 }}
@@ -169,8 +172,9 @@ export default class Root extends React.Component {
                     <div className='postreminderplugin-button-container'>
                         <button
                             className={'btn btn-primary'}
-                            style={style.button}
+                            style={this.state.durationNumber > 0 ? style.button : style.inactiveButton}
                             onClick={this.submit}
+                            disabled={this.state.durationNumber <= 0}
                         >
                             {'Add the reminder!'}
                         </button>
@@ -198,8 +202,13 @@ const getStyle = makeStyleFromTheme((theme) => {
         textarea: {
             backgroundColor: theme.centerChannelBg,
         },
+        numberinput: {
+            backgroundColor: theme.centerChannelBg,
+            textAlign: 'center',
+        },
         selector: {
             backgroundColor: theme.centerChannelBg,
+            textAlign: 'center',
         },
         helpText: {
             color: changeOpacity(theme.centerChannelColor, 0.64),

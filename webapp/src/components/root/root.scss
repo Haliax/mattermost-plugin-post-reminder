@@ -58,6 +58,14 @@
                 height: 48px;
                 width: 50%;
             }
+            &.postreminderplugin-no-spin-button {
+                appearance: none;
+                -moz-appearance: textfield;
+                &::-webkit-inner-spin-button {
+                    -webkit-appearance: none;
+                    margin: 0;
+                }
+            }
             &:focus {
                 border-color: var(--center-channel-color-32);
             }
