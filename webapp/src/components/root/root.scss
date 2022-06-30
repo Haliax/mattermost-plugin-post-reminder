@@ -54,6 +54,10 @@
             &.postreminderplugin-one-line {
                 height: 48px;
             }
+            &.postreminderplugin-split-line {
+                height: 48px;
+                width: 50%;
+            }
             &:focus {
                 border-color: var(--center-channel-color-32);
             }

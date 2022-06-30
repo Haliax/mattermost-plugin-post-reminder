@@ -108,12 +108,15 @@ export default class Root extends React.Component {
                             <input
                                 type={'number'}
                                 value={this.state.durationNumber}
+                                className={'postreminderplugin-input postreminderplugin-split-line'}
                                 onChange={async (e) => {
                                     await this.setStateAsync({durationNumber: ((e.target.value ? parseInt(e.target.value, 10) : 0))});
                                 }}
                             />
                             <select
                                 value={this.state.durationType}
+                                className={'postreminderplugin-input postreminderplugin-split-line'}
+                                style={style.selector}
                                 onChange={async (e) => {
                                     await this.setStateAsync({durationType: e.target.value});
                                 }}
@@ -193,6 +196,9 @@ const getStyle = makeStyleFromTheme((theme) => {
             color: changeOpacity(theme.centerChannelColor, 0.88),
         },
         textarea: {
+            backgroundColor: theme.centerChannelBg,
+        },
+        selector: {
             backgroundColor: theme.centerChannelBg,
         },
         helpText: {
