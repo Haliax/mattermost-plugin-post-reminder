@@ -47,8 +47,28 @@ export default class Root extends React.Component {
         });
     }
 
+    async calculateDuration() {
+        let multiplier;
+        switch (this.state.durationType) {
+        case 'minutes':
+            multiplier = 60;
+            break;
+        case 'hours':
+            multiplier = 3600;
+            break;
+        case 'days':
+            multiplier = 86400;
+            break;
+        default:
+            multiplier = 3600;
+            break;
+        }
+
+        await this.setStateAsync({reminderDate: this.state.durationNumber * multiplier * 1000});
+    }
+
     submit = async () => {
-        // ToDo: New function here.
+        await this.calculateDuration();
         const {submit, close, postID} = this.props;
         const {message, reminderDate} = this.state;
         submit(message, postID, reminderDate);
@@ -69,7 +89,6 @@ export default class Root extends React.Component {
         const inactiveClass = 'btn';
         const writeButtonClass = this.state.previewMarkdown ? inactiveClass : activeClass;
         const previewButtonClass = this.state.previewMarkdown ? activeClass : inactiveClass;
-        const messageWrapper = this.state.reminderType === 'dm' ? '' : 'hidden';
 
         return (
             <FullScreenModal
@@ -91,11 +110,10 @@ export default class Root extends React.Component {
                                 value={this.state.durationNumber}
                                 onChange={async (e) => {
                                     await this.setStateAsync({durationNumber: ((e.target.value ? parseInt(e.target.value, 10) : 0))});
-                                    await this.setStateAsync({reminderDate: ((e.target.value ? parseInt(e.target.value, 10) : 0) * 60 * 1000)});
                                 }}
                             />
                             <select
-                                value={this.state.durationNumber}
+                                value={this.state.durationType}
                                 onChange={async (e) => {
                                     await this.setStateAsync({durationType: e.target.value});
                                 }}
@@ -106,48 +124,44 @@ export default class Root extends React.Component {
                             </select>
                         </div>
 
-                        <div className='hidden'>
-                            <div className={messageWrapper}>
-                                <h3>
-                                    {'Reminder Message'}
-                                </h3>
-                                <div className='btn-group'>
-                                    <button
-                                        className={writeButtonClass}
-                                        onClick={() => {
-                                            this.setState({previewMarkdown: false});
-                                        }}
-                                    >
-                                        {'Write'}
-                                    </button>
-                                    <button
-                                        className={previewButtonClass}
-                                        onClick={() => {
-                                            this.setState({previewMarkdown: true});
-                                        }}
-                                    >
-                                        {'Preview'}
-                                    </button>
-                                </div>
-                                {this.state.previewMarkdown ? (
-                                    <div
-                                        className='postreminderplugin-input'
-                                        style={style.markdown}
-                                    >
-                                        {PostUtils.messageHtmlToComponent(
-                                            PostUtils.formatText(this.state.message),
-                                        )}
-                                    </div>
-                                ) : (
-                                    <textarea
-                                        className='postreminderplugin-input'
-                                        style={style.textarea}
-                                        value={message}
-                                        onChange={(e) => this.setState({message: e.target.value})}
-                                    />)
-                                }
-                            </div>
+                        <h3>
+                            {'Reminder Message'}
+                        </h3>
+                        <div className='btn-group'>
+                            <button
+                                className={writeButtonClass}
+                                onClick={() => {
+                                    this.setState({previewMarkdown: false});
+                                }}
+                            >
+                                {'Write'}
+                            </button>
+                            <button
+                                className={previewButtonClass}
+                                onClick={() => {
+                                    this.setState({previewMarkdown: true});
+                                }}
+                            >
+                                {'Preview'}
+                            </button>
                         </div>
+                        {this.state.previewMarkdown ? (
+                            <div
+                                className='postreminderplugin-input'
+                                style={style.markdown}
+                            >
+                                {PostUtils.messageHtmlToComponent(
+                                    PostUtils.formatText(this.state.message),
+                                )}
+                            </div>
+                        ) : (
+                            <textarea
+                                className='postreminderplugin-input'
+                                style={style.textarea}
+                                value={message}
+                                onChange={(e) => this.setState({message: e.target.value})}
+                            />)
+                        }
                     </div>
                     <div className='postreminderplugin-button-container'>
                         <button
@@ -165,7 +179,7 @@ export default class Root extends React.Component {
                             {'What does this do?'}
                         </div>
                         <div className='postreminderplugin-answer'>
-                            {'Adding a Reminder will mark the message as unread after a certain amount of time or send you a reminder via DM.'}
+                            {'Adding a Reminder will send you a reminder via DM after a certain amount of time.'}
                         </div>
                     </div>
                 </div>
