@@ -4,6 +4,10 @@
 
 **Maintainer:** [@Haliax](https://github.com/Haliax)
 
+### Archived
+From Mattermost v7.10, using Mattermost in a web browser or the desktop app, you can set a timed reminder on posts made in channels, direct messages, and group messages.
+
+Therefore, this plugin is not needed anymore.
 
 ### Acknowledgment
 
